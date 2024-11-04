@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 KokoiRuby kokoiruby@gmail.com
 */
 package cmd
 
@@ -215,7 +215,7 @@ Use full name rather than short name`,
 	// build chat history
 	dialogue = append(dialogue, msg)
 	//return fmt.Sprintf("Function to call: %s, arg: %s", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
-	fmt.Printf("Function to call: %s, arg: %s\n", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
+	//fmt.Printf("Function to call: %s, arg: %s\n", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
 	result, err := invokeFunc(ctx, client, msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
 	if err != nil {
 		return err.Error()

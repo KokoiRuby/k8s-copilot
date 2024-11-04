@@ -182,8 +182,10 @@ func UpdateResource(ctx context.Context, client *utils.OpenAI, namespace, resour
 	sysPrompt := `
 You're a K8s resource YAML manifest updater.
 Please merge the given YAML manifest with delta.
-You only need to focus the spec field. 
-But you'd better check any deltas in metadata as well such as labels & annotations.
+You only need to focus the spec & metadata field. 
+Especially when you're dealing with labels & annotations, if you're required to remove them,
+remove the key/value pair entirely, not just leave the key over there.
+Besides, for metadata, you should merge the delta rather than creating a new one.
 Get rid of status field.
 Please DON'T include it into YAML code block.
 `
