@@ -109,8 +109,10 @@ For non-namespaced resources, such as namespaces, persistentvolumes,
 this field shall not be set.`,
 				},
 				"resource": {
-					Type:        jsonschema.String,
-					Description: "K8s built-in resource, for example: pods, deployments, services, you can also use singular or short name (if had)",
+					Type: jsonschema.String,
+					Description: `K8s built-in resource from 'kubectl api-resources'. 
+For example: pods, deployments, services.
+Use full name rather than short name`,
 				},
 			},
 			Required: []string{"namespace", "resource"},
@@ -132,8 +134,10 @@ this field shall not be set.`,
 					Description: "The namespace where resource is.",
 				},
 				"resource": {
-					Type:        jsonschema.String,
-					Description: "Kubernetes built-in resource, for example: pods, deployments, services, you can also use singular or short name (if had)",
+					Type: jsonschema.String,
+					Description: `K8s built-in resource from 'kubectl api-resources'. 
+For example: pods, deployments, services.
+Use full name rather than short name`,
 				},
 				"resource_name": {
 					Type:        jsonschema.String,
@@ -163,8 +167,10 @@ this field shall not be set.`,
 					Description: "The namespace where resource is.",
 				},
 				"resource": {
-					Type:        jsonschema.String,
-					Description: "Kubernetes built-in resource, for example: pods, deployments, services, you can also use singular or short name (if had)",
+					Type: jsonschema.String,
+					Description: `K8s built-in resource from 'kubectl api-resources'. 
+For example: pods, deployments, services.
+Use full name rather than short name`,
 				},
 				"resource_name": {
 					Type:        jsonschema.String,
