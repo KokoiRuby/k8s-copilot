@@ -1,0 +1,58 @@
+@startuml Vault-Bootstrap
+participant Interactive #LightBlue
+participant ChatGPT #LightBlue
+collections K8s #LightBlue
+
+header K8s Copilot
+
+title CRUD on Resource
+-> Interactive : ./k8s-copilot ask chatgpt
+group Start to chat
+    Interactive -> Interactive : Build function tools
+    Loop
+        Interactive -> Interactive : Input query from stdin
+        Interactive -> Interactive : Process input query
+        Interactive -> Interactive : Function calling
+        Interactive -> ChatGPT : Chat completion given function tools
+        Interactive <- ChatGPT : Funtion name & args
+        Interactive -> Interactive : Invoke function by switch/case function name
+        group CreateResource
+            Interactive -> ChatGPT : Generate YAML manifest given input query
+            Interactive <- ChatGPT : Generated YAML manifest
+            Interactive -> Interactive : Unmarshal YAML to Unstructured
+            Interactive -> Interactive : Build REST mapper
+            Interactive -> Interactive : Get REST mapping by Unstructured's GVK
+            Interactive -> K8s : Create resource by Unstructured
+            Interactive <- K8s : Created successfully
+        end
+        group ListResource
+            Interactive -> Interactive : Get GVR from resource map
+            Interactive -> K8s : List resource by GVR
+            Interactive <- K8s : Response
+        end
+        group UpdateResource
+            Interactive -> Interactive : Get GVR from resource map
+            Interactive -> K8s : Get resource by GVR & resource name
+            Interactive <- K8s : Unstructured
+            Interactive -> Interactive : Marshal Unstructured to YAML
+            Interactive -> ChatGPT : Chat completion given YAML & delta
+            Interactive <- ChatGPT : Updated YAML
+            Interactive -> Interactive : Unmarshal updated YAML to Unstructured
+            Interactive -> K8s : Update resource by Unstructured
+            Interactive <- K8s : Updated successfully
+        end
+        group DeleteResource
+            Interactive -> Interactive : Get GVR from resource map
+            Interactive -> Interactive : Confirm?
+            alt#Gold #LightGreen
+                Interactive -> K8s : Delete resource by GVR & resource name
+                Interactive <- K8s : Deleted successfully
+            else #Pink
+                Interactive -> Interactive : Abort
+            end
+            
+        end
+    end
+    Interactive -> Interactive : quit
+end
+@enduml

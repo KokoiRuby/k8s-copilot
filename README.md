@@ -157,7 +157,7 @@ $ kubectl get deploy
 
 ### Implementation
 
-See more in UML. 👈
+See more in [UML](https://github.com/KokoiRuby/k8s-copilot/tree/main/uml). 👈
 
 ### Limitation
 

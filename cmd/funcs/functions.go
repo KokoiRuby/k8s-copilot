@@ -107,6 +107,13 @@ Please DON'T include it into YAML code block.
 	}
 	//return yamlContent, nil
 
+	// yaml to unstructured
+	unstructuredObj := &unstructured.Unstructured{}
+	_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(yml), nil, unstructuredObj)
+	if err != nil {
+		return "", err
+	}
+
 	// client-go
 	clientGo, err := utils.NewClientGo(kubeConfig)
 	if err != nil {
@@ -119,13 +126,6 @@ Please DON'T include it into YAML code block.
 		return "", err
 	}
 	mapper := restmapper.NewDiscoveryRESTMapper(res)
-
-	// yaml to unstructured
-	unstructuredObj := &unstructured.Unstructured{}
-	_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(yml), nil, unstructuredObj)
-	if err != nil {
-		return "", err
-	}
 
 	// get gvr from gvk of unstructured
 	gvk := unstructuredObj.GroupVersionKind()
