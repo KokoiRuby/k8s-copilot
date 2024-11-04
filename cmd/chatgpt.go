@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var tools []openai.Tool
+
 // chatgptCmd represents the chatgpt command
 var chatgptCmd = &cobra.Command{
 	Use:   "chatgpt",
@@ -44,6 +46,8 @@ func init() {
 
 // 1. startToChat retrieves user input from stdin & prepares to process it.
 func startToChat() {
+	tools = buildTools()
+
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Greetings, I'm a Copilot for Kubernetes, you require my assistant?")
 
@@ -77,6 +81,87 @@ func processInput(ctx context.Context, input string) string {
 
 // 3. funcCalling defines the functions & prepares to invoke.
 func funcCalling(ctx context.Context, input string, client *utils.OpenAI) string {
+	dialogue := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: input,
+		},
+	}
+
+	resp, err := client.Client.CreateChatCompletion(ctx,
+		openai.ChatCompletionRequest{
+			Model:    openai.GPT4oMini,
+			Messages: dialogue,
+			Tools:    tools,
+		},
+	)
+	if err != nil {
+		return err.Error()
+	}
+
+	msg := resp.Choices[0].Message
+	if len(msg.ToolCalls) != 1 {
+		return fmt.Sprintf("No appropriate tool is found, %v", len(msg.ToolCalls))
+	}
+
+	// build chat history
+	dialogue = append(dialogue, msg)
+	//return fmt.Sprintf("Function to call: %s, arg: %s", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
+	//fmt.Printf("Function to call: %s, arg: %s\n", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
+	result, err := invokeFunc(ctx, client, msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
+	if err != nil {
+		return err.Error()
+	}
+	return result
+}
+
+// 4. invokeFunc invokes the function
+func invokeFunc(ctx context.Context, client *utils.OpenAI, name, args string) (string, error) {
+	switch name {
+	case "createResource":
+		params := struct {
+			Input string `json:"input"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.CreateResource(ctx, client, params.Input, kubeconfig)
+	case "listResource":
+		params := struct {
+			Namespace string `json:"namespace"`
+			Resource  string `json:"resource"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.ListResource(ctx, params.Namespace, params.Resource, kubeconfig)
+	case "updateResource":
+		params := struct {
+			Namespace    string `json:"namespace"`
+			Resource     string `json:"resource"`
+			ResourceName string `json:"resource_name"`
+			Delta        string `json:"delta"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.UpdateResource(ctx, client, params.Namespace, params.Resource, params.ResourceName, params.Delta, kubeconfig)
+	case "deleteResource":
+		params := struct {
+			Namespace    string `json:"namespace"`
+			Resource     string `json:"resource"`
+			ResourceName string `json:"resource_name"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.DeleteResource(ctx, params.Namespace, params.Resource, params.ResourceName, kubeconfig)
+	default:
+		return "", fmt.Errorf("unknown function %s", name)
+	}
+}
+
+func buildTools() []openai.Tool {
 	f1 := openai.FunctionDefinition{
 		Name:        "createResource",
 		Description: "Create Kubernetes resource YAML manifest",
@@ -189,82 +274,5 @@ Use full name rather than short name`,
 		Function: &f4,
 	}
 
-	dialogue := []openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleUser,
-			Content: input,
-		},
-	}
-
-	resp, err := client.Client.CreateChatCompletion(ctx,
-		openai.ChatCompletionRequest{
-			Model:    openai.GPT4oMini,
-			Messages: dialogue,
-			Tools:    []openai.Tool{t1, t2, t3, t4},
-		},
-	)
-	if err != nil {
-		return err.Error()
-	}
-
-	msg := resp.Choices[0].Message
-	if len(msg.ToolCalls) != 1 {
-		return fmt.Sprintf("No appropriate tool is found, %v", len(msg.ToolCalls))
-	}
-
-	// build chat history
-	dialogue = append(dialogue, msg)
-	//return fmt.Sprintf("Function to call: %s, arg: %s", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
-	//fmt.Printf("Function to call: %s, arg: %s\n", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
-	result, err := invokeFunc(ctx, client, msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
-	if err != nil {
-		return err.Error()
-	}
-	return result
-}
-
-// 4. invokeFunc invokes the function
-func invokeFunc(ctx context.Context, client *utils.OpenAI, name, args string) (string, error) {
-	switch name {
-	case "createResource":
-		params := struct {
-			Input string `json:"input"`
-		}{}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "", err
-		}
-		return funcs.CreateResource(ctx, client, params.Input, kubeconfig)
-	case "listResource":
-		params := struct {
-			Namespace string `json:"namespace"`
-			Resource  string `json:"resource"`
-		}{}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "", err
-		}
-		return funcs.ListResource(ctx, params.Namespace, params.Resource, kubeconfig)
-	case "updateResource":
-		params := struct {
-			Namespace    string `json:"namespace"`
-			Resource     string `json:"resource"`
-			ResourceName string `json:"resource_name"`
-			Delta        string `json:"delta"`
-		}{}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "", err
-		}
-		return funcs.UpdateResource(ctx, client, params.Namespace, params.Resource, params.ResourceName, params.Delta, kubeconfig)
-	case "deleteResource":
-		params := struct {
-			Namespace    string `json:"namespace"`
-			Resource     string `json:"resource"`
-			ResourceName string `json:"resource_name"`
-		}{}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "", err
-		}
-		return funcs.DeleteResource(ctx, params.Namespace, params.Resource, params.ResourceName, kubeconfig)
-	default:
-		return "", fmt.Errorf("unknown function %s", name)
-	}
+	return []openai.Tool{t1, t2, t3, t4}
 }

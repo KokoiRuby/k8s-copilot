@@ -2,7 +2,7 @@
 
 ### Overview
 
-**K8s-Copilot** is a command-line tool based on [Golang](https://go.dev/) which allows to create/list/update/delete Kubernetes built-in resources interactively powered by ChatGPT.
+**K8s-Copilot** is a command-line tool based on [Golang](https://go.dev/) which allows you to create/list/update/delete Kubernetes built-in resources interactively powered by ChatGPT.
 
 *Note: Model is currently hard-coded in `gpt-4o-mini`.*
 
@@ -11,7 +11,7 @@
 - Create a Kubernetes resource in a specific namespace.
 - List Kubernetes either namespaced or non-namespaced resources.
 - Update a Kubernetes resource given specific name & namespace.
-- Delete a Kubernetes resource in a specific namespace.
+- Delete a Kubernetes resource given specific name & namespace.
 
 ### Features
 
@@ -55,7 +55,7 @@ $ export API_KEY="api_key"
 $ export BASE_URL="base_url"
 ```
 
-If u're using WSL, add below to `/etc/wsl.conf` then export the ENV.
+If you're using WSL, add below to `/etc/wsl.conf` then export the ENV.
 
 ```bash
 [automount]
@@ -134,7 +134,7 @@ $ kubectl get po --show-labels
 $ kubectl get po --show-labels
 ```
 
-```bash
+```
 > update image of deploy named nginx to nginx:1.26.2
 ```
 
@@ -143,7 +143,7 @@ $ kubectl get po --show-labels
 $ kubectl get deploy nginx -o yaml | grep image:
 ```
 
-```bash
+```
 > delete deploy named nginx
 ```
 

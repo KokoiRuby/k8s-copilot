@@ -1,0 +1,15 @@
+@startuml Vault-Bootstrap
+collections K8s #LightBlue
+participant Interactive #LightBlue
+
+header K8s Copilot
+
+title Create Resource
+-> Interactive : ./k8s-copilot ask chatgpt
+group Start to chat
+    loop
+        Interactive -> Interactive : query from stdin
+    end
+Interactive -> Interactive : quit
+
+@enduml
