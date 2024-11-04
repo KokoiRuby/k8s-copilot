@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/KokoiRuby/k8s-copilot/cmd/utils"
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -96,11 +97,11 @@ func CreateResource(ctx context.Context, client *utils.OpenAI, input, kubeConfig
 	sysPrompt := `
 You're a K8s resource YAML manifest generator.
 Please generate corresponding YAML manifest based on user input.
-Don't include it into YAML code block.
+Please DON'T include it into YAML code block.
 `
 
 	// generate YAML manifest given user input
-	yaml, err := client.SendMessage(sysPrompt, input)
+	yml, err := client.SendMessage(sysPrompt, input)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +122,7 @@ Don't include it into YAML code block.
 
 	// yaml to unstructured
 	unstructuredObj := &unstructured.Unstructured{}
-	_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(yaml), nil, unstructuredObj)
+	_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(yml), nil, unstructuredObj)
 	if err != nil {
 		return "", err
 	}
@@ -148,7 +149,6 @@ Don't include it into YAML code block.
 }
 
 func ListResource(ctx context.Context, namespace, resource, kubeConfig string) (string, error) {
-	// client-go
 	clientGo, err := utils.NewClientGo(kubeConfig)
 	if err != nil {
 		return "", err
@@ -178,8 +178,76 @@ func ListResource(ctx context.Context, namespace, resource, kubeConfig string) (
 	return result, nil
 }
 
+func UpdateResource(ctx context.Context, client *utils.OpenAI, namespace, resource, resourceName, delta, kubeConfig string) (string, error) {
+	sysPrompt := `
+You're a K8s resource YAML manifest updater.
+Please merge the given YAML manifest with delta.
+You only need to focus the spec field. 
+But you'd better check any deltas in metadata as well such as labels & annotations.
+Get rid of status field.
+Please DON'T include it into YAML code block.
+`
+	clientGo, err := utils.NewClientGo(kubeConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// get current res
+	var unStruct *unstructured.Unstructured
+	if res, ok := resourceMap[resource]; !ok {
+		return "", fmt.Errorf("resource [%s] not supported", resource)
+	} else {
+		if res.Namespaced {
+			unStruct, err = clientGo.DynamicClient.Resource(res.GVR).Namespace(namespace).Get(ctx, resourceName, metav1.GetOptions{})
+			if err != nil {
+				return "", err
+			}
+			yml, err := yaml.Marshal(unStruct.Object)
+			if err != nil {
+				return "", err
+			}
+			ymlNew, err := client.SendMessage(sysPrompt, string(yml)+"\nThe delta is: "+delta)
+			if err != nil {
+				return "", err
+			}
+			unStructNew := &unstructured.Unstructured{}
+			_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(ymlNew), nil, unStructNew)
+			if err != nil {
+				return "", err
+			}
+			_, err = clientGo.DynamicClient.Resource(res.GVR).Namespace(namespace).Update(ctx, unStructNew, metav1.UpdateOptions{})
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("Resource [%s] updated successfully", resourceName), nil
+		} else {
+			unStruct, err = clientGo.DynamicClient.Resource(res.GVR).Get(ctx, resourceName, metav1.GetOptions{})
+			if err != nil {
+				return "", err
+			}
+			yml, err := yaml.Marshal(unStruct)
+			if err != nil {
+				return "", err
+			}
+			ymlNew, err := client.SendMessage(sysPrompt, string(yml)+"\nThe delta is: "+delta)
+			if err != nil {
+				return "", err
+			}
+			unStructNew := &unstructured.Unstructured{}
+			_, _, err = scheme.Codecs.UniversalDeserializer().Decode([]byte(ymlNew), nil, unStructNew)
+			if err != nil {
+				return "", err
+			}
+			_, err = clientGo.DynamicClient.Resource(res.GVR).Namespace(namespace).Update(ctx, unStructNew, metav1.UpdateOptions{})
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("Resource [%s] updated successfully", resourceName), nil
+		}
+	}
+}
+
 func DeleteResource(ctx context.Context, namespace, resource, resourceName, kubeConfig string) (string, error) {
-	// client-go
 	clientGo, err := utils.NewClientGo(kubeConfig)
 	if err != nil {
 		return "", err

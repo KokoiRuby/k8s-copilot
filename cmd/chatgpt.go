@@ -243,6 +243,17 @@ func invokeFunc(ctx context.Context, client *utils.OpenAI, name, args string) (s
 			return "", err
 		}
 		return funcs.ListResource(ctx, params.Namespace, params.Resource, kubeconfig)
+	case "updateResource":
+		params := struct {
+			Namespace    string `json:"namespace"`
+			Resource     string `json:"resource"`
+			ResourceName string `json:"resource_name"`
+			Delta        string `json:"delta"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.UpdateResource(ctx, client, params.Namespace, params.Resource, params.ResourceName, params.Delta, kubeconfig)
 	case "deleteResource":
 		params := struct {
 			Namespace    string `json:"namespace"`
