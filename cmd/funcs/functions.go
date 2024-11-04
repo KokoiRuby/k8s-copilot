@@ -143,7 +143,7 @@ Don't include it into YAML code block.
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("Resource %s created successfully", unstructuredObj.GetName()), nil
+	return fmt.Sprintf("Resource [%s] created successfully", unstructuredObj.GetName()), nil
 
 }
 
@@ -156,7 +156,7 @@ func ListResource(ctx context.Context, namespace, resource, kubeConfig string) (
 
 	var resList *unstructured.UnstructuredList
 	if res, ok := resourceMap[resource]; !ok {
-		return "", fmt.Errorf("resource %s not supported", resource)
+		return "", fmt.Errorf("resource [%s] not supported", resource)
 	} else {
 		if res.Namespaced {
 			resList, err = clientGo.DynamicClient.Resource(res.GVR).Namespace(namespace).List(ctx, metav1.ListOptions{})
@@ -176,4 +176,41 @@ func ListResource(ctx context.Context, namespace, resource, kubeConfig string) (
 	}
 
 	return result, nil
+}
+
+func DeleteResource(ctx context.Context, namespace, resource, resourceName, kubeConfig string) (string, error) {
+	// client-go
+	clientGo, err := utils.NewClientGo(kubeConfig)
+	if err != nil {
+		return "", err
+	}
+
+	if res, ok := resourceMap[resource]; !ok {
+		return "", fmt.Errorf("resource [%s] not supported", resource)
+	} else {
+		fmt.Printf("Are you sure that you want to delete the resource [%s] in namespace [%s]? (yes/no): ", resourceName, namespace)
+		var confirm string
+		_, err := fmt.Scanln(&confirm)
+		if err != nil {
+			return "", err
+		}
+
+		if confirm != "yes" {
+			return "Deletion aborted by user.", nil
+		}
+
+		if res.Namespaced {
+			err := clientGo.DynamicClient.Resource(res.GVR).Namespace(namespace).Delete(ctx, resourceName, metav1.DeleteOptions{})
+			if err != nil {
+				return "", err
+			}
+		} else {
+			err := clientGo.DynamicClient.Resource(res.GVR).Delete(ctx, resourceName, metav1.DeleteOptions{})
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+
+	return fmt.Sprintf("Resource [%s] deleted successfully", resourceName), nil
 }

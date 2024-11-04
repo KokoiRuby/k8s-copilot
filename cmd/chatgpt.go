@@ -130,8 +130,10 @@ Use full name rather than short name`,
 			Type: jsonschema.Object,
 			Properties: map[string]jsonschema.Definition{
 				"namespace": {
-					Type:        jsonschema.String,
-					Description: "The namespace where resource is.",
+					Type: jsonschema.String,
+					Description: `The namespace where resource is. if not given, set it to "default".
+For non-namespaced resources, such as namespaces, persistentvolumes, 
+this field shall not be set.`,
 				},
 				"resource": {
 					Type: jsonschema.String,
@@ -163,8 +165,10 @@ Use full name rather than short name`,
 			Type: jsonschema.Object,
 			Properties: map[string]jsonschema.Definition{
 				"namespace": {
-					Type:        jsonschema.String,
-					Description: "The namespace where resource is.",
+					Type: jsonschema.String,
+					Description: `The namespace where resource is. if not given, set it to "default".
+For non-namespaced resources, such as namespaces, persistentvolumes, 
+this field shall not be set.`,
 				},
 				"resource": {
 					Type: jsonschema.String,
@@ -239,6 +243,16 @@ func invokeFunc(ctx context.Context, client *utils.OpenAI, name, args string) (s
 			return "", err
 		}
 		return funcs.ListResource(ctx, params.Namespace, params.Resource, kubeconfig)
+	case "deleteResource":
+		params := struct {
+			Namespace    string `json:"namespace"`
+			Resource     string `json:"resource"`
+			ResourceName string `json:"resource_name"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.DeleteResource(ctx, params.Namespace, params.Resource, params.ResourceName, kubeconfig)
 	default:
 		return "", fmt.Errorf("unknown function %s", name)
 	}
