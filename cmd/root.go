@@ -31,8 +31,8 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "k8s-copilot",
-	Short: "An simple interactive copilot for Kubernetes.",
-	Long: `An simple interactive copilot for Kubernetes 
+	Short: "A simple interactive copilot for Kubernetes.",
+	Long: `A simple interactive copilot for Kubernetes 
 which assists you in creating/updating/listing/deleting resources by calling ChatGPT.`,
 	Version: "v0.0.1",
 	// Uncomment the following line if your bare application

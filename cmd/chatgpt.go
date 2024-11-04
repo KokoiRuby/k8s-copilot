@@ -103,8 +103,10 @@ func funcCalling(ctx context.Context, input string, client *utils.OpenAI) string
 			Type: jsonschema.Object,
 			Properties: map[string]jsonschema.Definition{
 				"namespace": {
-					Type:        jsonschema.String,
-					Description: "The namespace where resource is",
+					Type: jsonschema.String,
+					Description: `The namespace where resource is. 
+For non-namespaced resources, such as namespaces, persistentvolumes, 
+this field shall not be set.`,
 				},
 				"resource": {
 					Type:        jsonschema.String,
@@ -203,6 +205,7 @@ func funcCalling(ctx context.Context, input string, client *utils.OpenAI) string
 	// build chat history
 	dialogue = append(dialogue, msg)
 	//return fmt.Sprintf("Function to call: %s, arg: %s", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
+	fmt.Printf("Function to call: %s, arg: %s\n", msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
 	result, err := invokeFunc(ctx, client, msg.ToolCalls[0].Function.Name, msg.ToolCalls[0].Function.Arguments)
 	if err != nil {
 		return err.Error()
@@ -221,6 +224,15 @@ func invokeFunc(ctx context.Context, client *utils.OpenAI, name, args string) (s
 			return "", err
 		}
 		return funcs.CreateResource(ctx, client, params.Input, kubeconfig)
+	case "listResource":
+		params := struct {
+			Namespace string `json:"namespace"`
+			Resource  string `json:"resource"`
+		}{}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "", err
+		}
+		return funcs.ListResource(ctx, params.Namespace, params.Resource, kubeconfig)
 	default:
 		return "", fmt.Errorf("unknown function %s", name)
 	}

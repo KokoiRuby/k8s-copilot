@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/sashabaranov/go-openai"
 	"os"
 )
@@ -18,11 +19,13 @@ func NewOpenAI() (*OpenAI, error) {
 	// ENV
 	apiKey := os.Getenv("API_KEY")
 	if apiKey == "" {
-		return nil, errors.New("API_KEY environment variable is not set")
+		fmt.Println("API_KEY environment variable is not set, exiting...")
+		os.Exit(1)
 	}
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		return nil, errors.New("BASE_URL environment variable is not set")
+		fmt.Println("BASE_URL environment variable is not set, exiting...")
+		os.Exit(1)
 	}
 
 	config := openai.DefaultConfig(apiKey)
